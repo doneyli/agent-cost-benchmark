@@ -1,0 +1,18 @@
+Rate the quality of these code fixes on a 1-5 scale:
+
+1 = Fix is wrong or introduces new bugs
+2 = Fix works but is hacky/non-idiomatic
+3 = Fix is correct and acceptable
+4 = Fix is clean, idiomatic, minimal
+5 = Fix is exemplary — would pass senior code review
+
+## Original code
+{{original_code}}
+
+## Fixed code
+{{fixed_code}}
+
+## Bugs addressed
+{{bugs_addressed}}
+
+Return JSON: {"score": <1-5>, "rationale": "<explanation>"}
