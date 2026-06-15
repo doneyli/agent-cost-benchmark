@@ -6,15 +6,15 @@ from pathlib import Path
 
 from langfuse import observe
 
-from benchmark.agents.base import BaseAgent
+from benchmark.agents.base import BaseAgent, UsageAccumulator
 from benchmark.schemas.agents import ScoutOutput
 
 SYSTEM_PROMPT = (Path(__file__).parent.parent / "prompts" / "scout.md").read_text()
 
 
 class ScoutAgent(BaseAgent):
-    def __init__(self, model_id: str):
-        super().__init__(model_id, "scout")
+    def __init__(self, model_id: str, usage: UsageAccumulator | None = None):
+        super().__init__(model_id, "scout", usage=usage)
 
     @observe(name="scout")
     def run(self, source_code: dict[str, str]) -> ScoutOutput:

@@ -53,6 +53,15 @@ def generate_comparison(results_dir: Path) -> list[dict]:
                 r["overall_quality"] for r in pipeline_runs
             )
             entry["pipeline_complete"] = any(r["pipeline_complete"] for r in pipeline_runs)
+            entry["pipeline_tokens_median"] = statistics.median(
+                r.get("total_tokens", 0) or 0 for r in pipeline_runs
+            )
+            entry["pipeline_input_tokens_median"] = statistics.median(
+                r.get("total_input_tokens", 0) or 0 for r in pipeline_runs
+            )
+            entry["pipeline_output_tokens_median"] = statistics.median(
+                r.get("total_output_tokens", 0) or 0 for r in pipeline_runs
+            )
 
             bugs_median = entry["pipeline_bugs_median"]
             if bugs_median > 0:

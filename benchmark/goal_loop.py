@@ -280,7 +280,7 @@ def _openai_work_turn(agent: BaseAgent, conversation: list[dict]) -> dict:
                 "content": result.get("output", json.dumps(result)),
             })
 
-        if choice.finish_reason != "tool_calls":
+        if choice.finish_reason not in ("tool_calls", "function_call"):
             break
 
     # Convert back to simple conversation format

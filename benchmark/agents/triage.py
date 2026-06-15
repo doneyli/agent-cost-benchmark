@@ -6,15 +6,15 @@ from pathlib import Path
 
 from langfuse import observe
 
-from benchmark.agents.base import BaseAgent
+from benchmark.agents.base import BaseAgent, UsageAccumulator
 from benchmark.schemas.agents import ScoutOutput, TriageOutput
 
 SYSTEM_PROMPT = (Path(__file__).parent.parent / "prompts" / "triage.md").read_text()
 
 
 class TriageAgent(BaseAgent):
-    def __init__(self, model_id: str):
-        super().__init__(model_id, "triage")
+    def __init__(self, model_id: str, usage: UsageAccumulator | None = None):
+        super().__init__(model_id, "triage", usage=usage)
 
     @observe(name="triage")
     def run(self, findings: ScoutOutput) -> TriageOutput:

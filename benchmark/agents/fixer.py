@@ -6,15 +6,15 @@ from pathlib import Path
 
 from langfuse import observe
 
-from benchmark.agents.base import BaseAgent
+from benchmark.agents.base import BaseAgent, UsageAccumulator
 from benchmark.schemas.agents import FixerOutput, TriageOutput
 
 SYSTEM_PROMPT = (Path(__file__).parent.parent / "prompts" / "fixer.md").read_text()
 
 
 class FixerAgent(BaseAgent):
-    def __init__(self, model_id: str):
-        super().__init__(model_id, "fixer")
+    def __init__(self, model_id: str, usage: UsageAccumulator | None = None):
+        super().__init__(model_id, "fixer", usage=usage)
 
     @observe(name="fixer")
     def run(self, plan: TriageOutput, source_code: dict[str, str]) -> FixerOutput:

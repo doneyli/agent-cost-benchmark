@@ -6,15 +6,15 @@ from pathlib import Path
 
 from langfuse import observe
 
-from benchmark.agents.base import BaseAgent
+from benchmark.agents.base import BaseAgent, UsageAccumulator
 from benchmark.schemas.agents import FixerOutput, ReviewerOutput
 
 SYSTEM_PROMPT = (Path(__file__).parent.parent / "prompts" / "reviewer.md").read_text()
 
 
 class ReviewerAgent(BaseAgent):
-    def __init__(self, model_id: str):
-        super().__init__(model_id, "reviewer")
+    def __init__(self, model_id: str, usage: UsageAccumulator | None = None):
+        super().__init__(model_id, "reviewer", usage=usage)
 
     @observe(name="reviewer")
     def run(

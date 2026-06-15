@@ -60,14 +60,54 @@ def get_langfuse() -> Langfuse:
 # Base agent
 # ---------------------------------------------------------------------------
 
+class UsageAccumulator:
+    """Tracks cumulative token usage and cost across all LLM calls in a run."""
+
+    def __init__(self):
+        self.total_input_tokens: int = 0
+        self.total_output_tokens: int = 0
+        self.total_cache_read_tokens: int = 0
+        self.total_cache_creation_tokens: int = 0
+        self.calls: int = 0
+
+    def record(self, input_tokens: int, output_tokens: int,
+               cache_read: int = 0, cache_creation: int = 0) -> None:
+        self.total_input_tokens += input_tokens
+        self.total_output_tokens += output_tokens
+        self.total_cache_read_tokens += cache_read
+        self.total_cache_creation_tokens += cache_creation
+        self.calls += 1
+
+    @property
+    def total_tokens(self) -> int:
+        return self.total_input_tokens + self.total_output_tokens
+
+    def compute_cost(self, config: "ModelConfig") -> float:
+        return (
+            self.total_input_tokens * config.input_price_per_m / 1_000_000
+            + self.total_output_tokens * config.output_price_per_m / 1_000_000
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "input_tokens": self.total_input_tokens,
+            "output_tokens": self.total_output_tokens,
+            "total_tokens": self.total_tokens,
+            "cache_read_tokens": self.total_cache_read_tokens,
+            "cache_creation_tokens": self.total_cache_creation_tokens,
+            "llm_calls": self.calls,
+        }
+
+
 class BaseAgent:
     """Provider-agnostic agent with Langfuse tracing and structured output."""
 
-    def __init__(self, model_id: str, agent_name: str):
+    def __init__(self, model_id: str, agent_name: str, usage: UsageAccumulator | None = None):
         self.model_id = model_id
         self.agent_name = agent_name
         self.config = MODEL_LOOKUP[model_id]
         self.provider = self.config.provider
+        self.usage = usage or UsageAccumulator()
 
     # -- Unstructured output -------------------------------------------------
 
@@ -129,6 +169,13 @@ class BaseAgent:
             messages=[{"role": "user", "content": user_prompt}],
         )
 
+        input_tok = response.usage.input_tokens
+        output_tok = response.usage.output_tokens
+        cache_read = getattr(response.usage, "cache_read_input_tokens", 0) or 0
+        cache_creation = getattr(response.usage, "cache_creation_input_tokens", 0) or 0
+
+        self.usage.record(input_tok, output_tok, cache_read, cache_creation)
+
         lf = get_langfuse()
         lf.update_current_generation(
             model=self.model_id,
@@ -138,16 +185,10 @@ class BaseAgent:
             ],
             output=response.content[0].text,
             usage_details={
-                "input": response.usage.input_tokens,
-                "output": response.usage.output_tokens,
-                "cache_read_input_tokens": getattr(
-                    response.usage, "cache_read_input_tokens", 0
-                )
-                or 0,
-                "cache_creation_input_tokens": getattr(
-                    response.usage, "cache_creation_input_tokens", 0
-                )
-                or 0,
+                "input": input_tok,
+                "output": output_tok,
+                "cache_read_input_tokens": cache_read,
+                "cache_creation_input_tokens": cache_creation,
             },
         )
         return response.content[0].text
@@ -171,6 +212,13 @@ class BaseAgent:
             kwargs["extra_body"] = extra_body
 
         response = client.chat.completions.create(**kwargs)
+
+        if response.usage:
+            self.usage.record(
+                response.usage.prompt_tokens or 0,
+                response.usage.completion_tokens or 0,
+            )
+
         return response.choices[0].message.content or ""
 
     def _structured_anthropic(
@@ -195,6 +243,13 @@ class BaseAgent:
 
         tool_block = next(b for b in response.content if b.type == "tool_use")
 
+        input_tok = response.usage.input_tokens
+        output_tok = response.usage.output_tokens
+        cache_read = getattr(response.usage, "cache_read_input_tokens", 0) or 0
+        cache_creation = getattr(response.usage, "cache_creation_input_tokens", 0) or 0
+
+        self.usage.record(input_tok, output_tok, cache_read, cache_creation)
+
         lf = get_langfuse()
         lf.update_current_generation(
             model=self.model_id,
@@ -204,16 +259,10 @@ class BaseAgent:
             ],
             output=json.dumps(tool_block.input),
             usage_details={
-                "input": response.usage.input_tokens,
-                "output": response.usage.output_tokens,
-                "cache_read_input_tokens": getattr(
-                    response.usage, "cache_read_input_tokens", 0
-                )
-                or 0,
-                "cache_creation_input_tokens": getattr(
-                    response.usage, "cache_creation_input_tokens", 0
-                )
-                or 0,
+                "input": input_tok,
+                "output": output_tok,
+                "cache_read_input_tokens": cache_read,
+                "cache_creation_input_tokens": cache_creation,
             },
         )
 
@@ -247,6 +296,13 @@ class BaseAgent:
             kwargs["extra_body"] = extra_body
 
         response = client.chat.completions.create(**kwargs)
+
+        if response.usage:
+            self.usage.record(
+                response.usage.prompt_tokens or 0,
+                response.usage.completion_tokens or 0,
+            )
+
         parsed = json.loads(response.choices[0].message.content or "{}")
         return response_model.model_validate(parsed)
 
