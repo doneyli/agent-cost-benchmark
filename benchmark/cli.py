@@ -36,12 +36,20 @@ def cli():
 @click.option("--track", "-t", type=click.Choice(["pipeline", "goal", "both"]), default="both")
 @click.option("--repeat", "-r", default=RUNS_PER_MODEL, help="Number of runs per model")
 @click.option("--dry-run", is_flag=True, help="Validate setup without making API calls")
-def run(model: str | None, track: str, repeat: int, dry_run: bool):
+@click.option(
+    "--experiment", "-e", is_flag=True,
+    help="Run via Langfuse Experiments (dataset.run_experiment) for side-by-side comparison in Langfuse UI",
+)
+def run(model: str | None, track: str, repeat: int, dry_run: bool, experiment: bool):
     """Run the benchmark for one or all models."""
     from benchmark.agents.base import get_langfuse
 
     models = [model] if model else RUN_ORDER
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if experiment:
+        _run_experiment_mode(models, repeat, dry_run)
+        return
 
     for model_id in models:
         if model_id not in MODEL_LOOKUP:
@@ -67,6 +75,54 @@ def run(model: str | None, track: str, repeat: int, dry_run: bool):
 
     get_langfuse().flush()
     console.print("\n[bold green]Benchmark complete.[/bold green]")
+
+
+def _run_experiment_mode(models: list[str], repeat: int, dry_run: bool):
+    """Run via Langfuse Experiments for side-by-side comparison in the UI."""
+    from benchmark.agents.base import get_langfuse
+    from benchmark.datasets import ensure_dataset, run_experiment
+
+    console.print("\n[bold]Setting up Langfuse Dataset...[/bold]")
+    if dry_run:
+        console.print("[yellow]DRY RUN — would create dataset 'cost-per-task-benchmark'[/yellow]")
+        return
+
+    ensure_dataset()
+    console.print("[green]Dataset ready: cost-per-task-benchmark[/green]")
+
+    for model_id in models:
+        if model_id not in MODEL_LOOKUP:
+            console.print(f"[red]Unknown model: {model_id}[/red]")
+            continue
+
+        config = MODEL_LOOKUP[model_id]
+        provider_config = PROVIDER_CONFIGS[config.provider]
+        console.print(f"\n[bold]{'=' * 60}[/bold]")
+        console.print(f"[bold cyan]{config.display_name}[/bold cyan] (experiment mode)")
+
+        # Warm-up for Anthropic
+        if config.provider == "anthropic":
+            console.print("  [dim]Cache warm-up...[/dim]")
+            try:
+                run_experiment(model_id, run_number=0)
+            except Exception as e:
+                console.print(f"  [yellow]Warm-up failed: {e}[/yellow]")
+            time.sleep(2)
+
+        for run_num in range(1, repeat + 1):
+            console.print(f"  [experiment] Run {run_num}/{repeat}...")
+            try:
+                result = run_experiment(model_id, run_number=run_num)
+                output_file = RESULTS_DIR / f"experiment_{model_id}_{run_num}.json"
+                output_file.write_text(json.dumps(result, indent=2, default=str))
+                console.print(f"    Experiment: {result['experiment_name']}")
+            except Exception as e:
+                console.print(f"    [red]FAILED: {e}[/red]")
+
+            time.sleep(provider_config.delay_between_runs)
+
+    get_langfuse().flush()
+    console.print("\n[bold green]All experiments complete. View in Langfuse UI → Datasets → cost-per-task-benchmark[/bold green]")
 
 
 def _run_pipeline_track(model_id: str, repeat: int, provider_config):
@@ -139,6 +195,31 @@ def _run_goal_track(model_id: str, repeat: int, provider_config):
                 console.print(f"    [red]FAILED: {e}[/red]")
 
         time.sleep(provider_config.delay_between_runs)
+
+
+@cli.command()
+def setup():
+    """One-time setup: configure Langfuse model pricing and create the benchmark dataset."""
+    from benchmark.datasets import ensure_dataset
+
+    console.print("[bold]1/2 — Setting up Langfuse model pricing...[/bold]")
+    try:
+        from benchmark.scripts.setup_langfuse_models import main as setup_models
+        setup_models()
+        console.print("[green]Model pricing configured.[/green]")
+    except Exception as e:
+        console.print(f"[yellow]Model pricing setup failed: {e}[/yellow]")
+        console.print("[dim]You can configure models manually in Langfuse UI → Settings → Models[/dim]")
+
+    console.print("\n[bold]2/2 — Creating Langfuse dataset...[/bold]")
+    try:
+        ensure_dataset()
+        console.print("[green]Dataset 'cost-per-task-benchmark' ready.[/green]")
+    except Exception as e:
+        console.print(f"[red]Dataset creation failed: {e}[/red]")
+
+    console.print("\n[bold green]Setup complete.[/bold green]")
+    console.print("[dim]Next: benchmark run --experiment --model claude-haiku-4-5-20251001 --repeat 1[/dim]")
 
 
 @cli.command()
