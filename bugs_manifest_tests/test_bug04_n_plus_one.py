@@ -9,11 +9,11 @@ def test_no_n_plus_one_queries(client):
         client.post("/tasks", json={"title": f"Task {i}", "assignee": f"user{i % 3}"})
 
     # Count the number of SQL executions
+    import target_project.app as app_module
     import target_project.models as models
     original_get_db = models.get_db
 
     call_count = 0
-    original_conn_execute = None
 
     class CountingConnection:
         def __init__(self, conn):
@@ -38,7 +38,7 @@ def test_no_n_plus_one_queries(client):
         with original_get_db() as conn:
             yield CountingConnection(conn)
 
-    with unittest.mock.patch.object(models, "get_db", counting_get_db):
+    with unittest.mock.patch.object(app_module, "get_db", counting_get_db):
         call_count = 0
         response = client.get("/tasks-with-assignees")
 

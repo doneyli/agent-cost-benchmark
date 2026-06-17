@@ -6,7 +6,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-.venv/
+.venv*/
 venv/
 
 # Results (raw data is large, only commit summaries)
