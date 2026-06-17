@@ -1,0 +1,15 @@
+Rate the code review thoroughness on a 1-5 scale:
+
+1 = Superficial "looks good" with no actionable feedback
+2 = Notes some issues but misses obvious problems
+3 = Catches main issues with constructive feedback
+4 = Thorough review with specific, actionable, line-level feedback
+5 = Expert-level — catches subtle issues, suggests improvements beyond the fixes
+
+## Review output
+{{review}}
+
+## Context: bugs that were fixed
+{{bugs_fixed}}
+
+Return JSON: {"score": <1-5>, "rationale": "<explanation>"}

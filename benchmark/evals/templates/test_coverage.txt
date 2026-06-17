@@ -1,0 +1,15 @@
+Rate the test coverage on a 1-5 scale:
+
+1 = Tests don't verify the fixes (wrong assertions, testing unrelated things)
+2 = Tests verify the happy path only
+3 = Tests verify fixes with some edge cases
+4 = Thorough coverage including boundary conditions and error paths
+5 = Comprehensive — regression tests, parameterized cases, clear assertions
+
+## Bugs that were fixed
+{{bugs_fixed}}
+
+## Generated test code
+{{test_code}}
+
+Return JSON: {"score": <1-5>, "rationale": "<explanation>"}

@@ -1,0 +1,90 @@
+[
+  {
+    "bug_id": "BUG-01",
+    "category": "security",
+    "severity": "critical",
+    "file": "target_project/app.py",
+    "line": 75,
+    "description": "SQL injection in search endpoint — f-string interpolation instead of parameterized query",
+    "keywords": ["sql", "injection", "f-string", "search", "interpolation"],
+    "test_file": "test_bug01_sql_injection.py",
+    "reference_fix": "Replace f-string with parameterized query: conn.execute('SELECT * FROM tasks WHERE title LIKE ? OR description LIKE ?', (f'%{q}%', f'%{q}%'))"
+  },
+  {
+    "bug_id": "BUG-02",
+    "category": "logic",
+    "severity": "high",
+    "file": "target_project/utils.py",
+    "line": 36,
+    "description": "Off-by-one in pagination — page 1 starts at offset page_size instead of 0",
+    "keywords": ["off-by-one", "pagination", "offset", "page"],
+    "test_file": "test_bug02_pagination.py",
+    "reference_fix": "Change 'start = page * page_size' to 'start = (page - 1) * page_size'"
+  },
+  {
+    "bug_id": "BUG-03",
+    "category": "data-integrity",
+    "severity": "high",
+    "file": "target_project/app.py",
+    "line": 30,
+    "description": "Missing validation — allows creating tasks with due_date in the past",
+    "keywords": ["validation", "due_date", "past", "future"],
+    "test_file": "test_bug03_past_due_date.py",
+    "reference_fix": "Add check: if parsed_date < datetime.now(), raise HTTPException(400, 'due_date must be in the future')"
+  },
+  {
+    "bug_id": "BUG-04",
+    "category": "performance",
+    "severity": "medium",
+    "file": "target_project/app.py",
+    "line": 113,
+    "description": "N+1 query in list-tasks-with-assignees — executes a separate query per task",
+    "keywords": ["n+1", "query", "performance", "assignee", "loop"],
+    "test_file": "test_bug04_n_plus_one.py",
+    "reference_fix": "Replace per-task query with a single aggregation query using GROUP BY"
+  },
+  {
+    "bug_id": "BUG-05",
+    "category": "error-handling",
+    "severity": "medium",
+    "file": "target_project/utils.py",
+    "line": 12,
+    "description": "Unhandled ValueError in date parser — invalid dates crash the server with 500",
+    "keywords": ["ValueError", "parse", "date", "crash", "unhandled", "exception"],
+    "test_file": "test_bug05_date_parse_crash.py",
+    "reference_fix": "Catch ValueError in the endpoint and return HTTPException(400, 'Invalid date format')"
+  },
+  {
+    "bug_id": "BUG-06",
+    "category": "concurrency",
+    "severity": "medium",
+    "file": "target_project/app.py",
+    "line": 40,
+    "description": "Race condition in task counter — read-modify-write without using the existing lock",
+    "keywords": ["race", "condition", "counter", "lock", "thread", "concurrent"],
+    "test_file": "test_bug06_race_condition.py",
+    "reference_fix": "Wrap the counter read-modify-write in 'with _counter_lock:' block"
+  },
+  {
+    "bug_id": "BUG-07",
+    "category": "business-logic",
+    "severity": "low",
+    "file": "target_project/utils.py",
+    "line": 28,
+    "description": "Priority score uses wrong weight 0.5 instead of 0.05 — inflates urgency by 10x",
+    "keywords": ["priority", "score", "weight", "calculation", "0.5", "0.05"],
+    "test_file": "test_bug07_priority_weight.py",
+    "reference_fix": "Change 'base += urgency * 0.5' to 'base += urgency * 0.05'"
+  },
+  {
+    "bug_id": "BUG-08",
+    "category": "edge-case",
+    "severity": "low",
+    "file": "target_project/utils.py",
+    "line": 45,
+    "description": "Empty string status filter returns invalid status instead of None — causes empty results",
+    "keywords": ["empty", "string", "status", "filter", "edge", "sanitize"],
+    "test_file": "test_bug08_empty_status.py",
+    "reference_fix": "Add 'if not normalized: return None' before the valid set check in sanitize_status"
+  }
+]

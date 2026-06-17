@@ -1,0 +1,60 @@
+[project]
+name = "agent-cost-benchmark"
+version = "0.1.0"
+description = "Cost per Token vs Cost per Task Completion — multi-model agentic benchmark with Langfuse instrumentation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Doneyli De Jesus" }]
+
+dependencies = [
+    # Langfuse — tracing, evals, datasets, cost tracking
+    "langfuse>=2.0",
+
+    # LLM providers
+    "anthropic>=0.52",
+    "openai>=1.30",
+
+    # Target project
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.28",
+
+    # Evaluation
+    "pytest>=8.0",
+
+    # Analysis
+    "pandas>=2.2",
+    "plotly>=5.24",
+    "tabulate>=0.9",
+
+    # CLI
+    "click>=8.1",
+    "rich>=13.0",
+
+    # Utilities
+    "python-dotenv>=1.0",
+    "pydantic>=2.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[project.scripts]
+benchmark = "benchmark.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["benchmark*", "target_project*"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["bugs_manifest_tests"]

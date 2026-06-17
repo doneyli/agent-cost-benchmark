@@ -1,0 +1,15 @@
+Rate the quality of this bug triage/prioritization on a 1-5 scale:
+
+1 = Priority order is wrong (low-sev before critical)
+2 = Roughly correct but misses dependencies between fixes
+3 = Correct ordering with basic rationale
+4 = Correct ordering with clear dependency analysis
+5 = Insightful prioritization with risk/effort tradeoffs
+
+## Bug findings
+{{findings}}
+
+## Proposed fix plan
+{{plan}}
+
+Return JSON: {"score": <1-5>, "rationale": "<explanation>"}
